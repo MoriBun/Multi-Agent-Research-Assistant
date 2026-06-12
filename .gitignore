@@ -1,0 +1,28 @@
+# API keys và secrets - KHÔNG BAO GIỜ commit những thứ này
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# ChromaDB data (local, không cần sync)
+chroma_db/
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
