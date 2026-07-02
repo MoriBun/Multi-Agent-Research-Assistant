@@ -76,7 +76,7 @@ Types:
   chore    → setup, config, không liên quan code
 
 Ví dụ:
-  learn: implement basic Claude API call (lesson 1)
+  learn: implement basic Gemini API call (lesson 1)
   feat: add stock price tool to chatbot
   fix: handle API timeout in financial data agent
   docs: update architecture diagram
@@ -143,15 +143,16 @@ Người dùng hỏi
           Báo cáo cho người dùng
 ```
 
-**Tech stack:**
-| Layer | Công nghệ | Vai trò |
-|---|---|---|
-| LLM | Claude API (Anthropic) | Não xử lý ngôn ngữ |
-| Orchestration | LangGraph | Điều phối các agent |
-| Vector DB | ChromaDB | Lưu & tìm kiếm báo cáo PDF |
-| Stock Data | Alpha Vantage API | Dữ liệu giá cổ phiếu thực |
-| PDF Parser | PyMuPDF | Đọc báo cáo tài chính |
-| Backend (optional) | FastAPI | Expose API ra ngoài |
+**Tech stack (100% miễn phí):**
+| Layer | Công nghệ | Vai trò | Chi phí |
+|---|---|---|---|
+| LLM | Google Gemini 2.0 Flash | Não xử lý ngôn ngữ | **$0** (free tier) |
+| Orchestration | LangGraph | Điều phối các agent | **$0** |
+| Vector DB | ChromaDB | Lưu & tìm kiếm báo cáo PDF | **$0** (local) |
+| Stock Data | yfinance | Dữ liệu giá cổ phiếu thực | **$0** (không cần API key) |
+| Embeddings | sentence-transformers | Chuyển text thành vector | **$0** (local) |
+| PDF Parser | PyMuPDF | Đọc báo cáo tài chính | **$0** |
+| Backend (optional) | FastAPI | Expose API ra ngoài | **$0** |
 
 ---
 
@@ -163,19 +164,19 @@ Người dùng hỏi
 
 - [ ] **Python bổ sung:** `pip`, virtual environment, `.env` file, `requests` library
 - [ ] **LLM là gì:** Prompt, completion, token, temperature
-- [ ] **Claude API:** Cách gọi, cấu trúc message, API key
+- [ ] **Gemini API:** Cách gọi, cấu trúc message, API key (lấy miễn phí tại Google AI Studio)
 - [ ] **Tool Use / Function Calling:** Cơ chế LLM gọi external function — **đây là nền tảng của multi-agent**
 - [ ] **Conversation History:** Cách LLM nhớ ngữ cảnh hội thoại
 
 ### Thứ phải làm (theo thứ tự)
 
 #### Bài 1 — Hello LLM
-- [ ] Tạo tài khoản Anthropic, lấy API key
-- [ ] Cài `anthropic` SDK: `pip install anthropic`
-- [ ] Gửi message đầu tiên tới Claude, nhận response
-- [ ] Hiểu cấu trúc: `role: user` / `role: assistant`
+- [ ] Lấy API key miễn phí tại [aistudio.google.com](https://aistudio.google.com) → Get API key
+- [ ] Cài `google-generativeai` SDK: `pip install google-generativeai`
+- [ ] Gửi message đầu tiên tới Gemini, nhận response
+- [ ] Hiểu cấu trúc: `role: user` / `role: model`
 
-**Output:** Script Python in ra câu trả lời từ Claude.
+**Output:** Script Python in ra câu trả lời từ Gemini 2.0 Flash.
 
 ---
 
@@ -189,13 +190,13 @@ Người dùng hỏi
 
 ---
 
-#### Bài 3 — Kết nối Alpha Vantage API
-- [ ] Đăng ký Alpha Vantage, lấy free API key
-- [ ] Gọi API lấy giá cổ phiếu thực (NVIDIA: `NVDA`)
-- [ ] Parse JSON response
+#### Bài 3 — Kết nối dữ liệu cổ phiếu thực với yfinance
+- [ ] Cài `yfinance`: `pip install yfinance` — **không cần API key, hoàn toàn miễn phí**
+- [ ] Lấy giá cổ phiếu thực (NVIDIA: `NVDA`): giá hiện tại, lịch sử 1 tháng
+- [ ] Lấy thông tin công ty: P/E, market cap, doanh thu
 - [ ] Kết nối với tool từ Bài 2
 
-**Output:** LLM gọi API thật và trả lời bằng dữ liệu thực.
+**Output:** LLM gọi dữ liệu thật từ Yahoo Finance và trả lời dựa trên số liệu thực.
 
 ---
 
@@ -213,10 +214,10 @@ Người dùng hỏi
 ```
 phase1/
 ├── .env                  # API keys (KHÔNG commit lên git)
-├── requirements.txt      # anthropic, requests, python-dotenv
+├── requirements.txt      # google-generativeai, yfinance, python-dotenv
 ├── lesson1_hello_llm.py
 ├── lesson2_tool_use.py
-├── lesson3_stock_api.py
+├── lesson3_stock_data.py
 └── lesson4_chatbot.py
 ```
 
@@ -258,7 +259,7 @@ Sau khi xong, bạn phải trả lời được:
 
 #### Bài 6 — Embedding & ChromaDB
 - [ ] Hiểu embedding là gì (dùng ví dụ cụ thể)
-- [ ] Dùng Claude hoặc sentence-transformers tạo embedding cho chunks
+- [ ] Dùng `sentence-transformers` tạo embedding cho chunks (local, miễn phí, không cần API)
 - [ ] Lưu vào ChromaDB
 - [ ] Query thử: *"doanh thu NVIDIA quý 3"* → trả về top 3 chunks liên quan
 
@@ -333,7 +334,7 @@ phase2/
 
 #### Bài 10 — Các Agent chuyên biệt
 - [ ] **Web Research Agent:** Tìm kiếm tin tức về cổ phiếu (dùng Tavily API hoặc DuckDuckGo)
-- [ ] **Financial Data Agent:** Lấy giá, chỉ số tài chính từ Alpha Vantage
+- [ ] **Financial Data Agent:** Lấy giá, chỉ số tài chính từ yfinance
 - [ ] **RAG Agent:** Query báo cáo tài chính (từ Giai đoạn 2)
 - [ ] **Analysis Agent:** Tổng hợp dữ liệu, phân tích xu hướng
 
@@ -396,15 +397,61 @@ phase3/
 
 ### Kiến thức cần học
 
+- [ ] **Multi-document RAG:** Metadata filtering trong ChromaDB (`where=...`), tổ chức nhiều tài liệu/nhiều công ty trong cùng 1 vector DB
+- [ ] **LLM-based Router:** Thay keyword if/else bằng LLM tự phân loại intent câu hỏi — thể hiện đúng bản chất "agentic"
+- [ ] **Multi-company Comparison:** Orchestrator xử lý nhiều symbol cùng lúc, phân tích song song, báo cáo so sánh
+- [ ] **Conversation Memory:** LangGraph MemorySaver + `thread_id`, cho phép hỏi tiếp mà hệ thống hiểu ngữ cảnh câu trước
+- [ ] **UI cơ bản với Streamlit:** `st.chat_input`, `st.chat_message`, hiển thị kết quả agent theo thời gian thực, tích hợp conversation memory
 - [ ] **Docker cơ bản:** Image, Container, Dockerfile, docker-compose
 - [ ] **Environment management:** `.env`, secrets, config cho các môi trường khác nhau
 - [ ] **Logging & Observability:** Structured logging, theo dõi agent nào chạy, mất bao lâu
 - [ ] **System Design cơ bản:** Cách vẽ và giải thích kiến trúc (quan trọng cho phỏng vấn)
-- [ ] **MLOps cơ bản:** Versioning prompt, tracking experiment, monitor output quality
 
 ### Thứ phải làm (theo thứ tự)
 
-#### Bài 13 — Docker hóa ứng dụng
+#### Bài 13 — Multi-document RAG
+- [ ] Thêm metadata (`symbol`/`company`, loại tài liệu, ngày) cho mỗi chunk khi lưu vào ChromaDB
+- [ ] Ingest nhiều báo cáo tài chính (≥ 2 công ty) vào cùng 1 collection
+- [ ] Sửa `rag_agent` dùng `collection.query(..., where={"symbol": ...})` để lọc đúng phạm vi tài liệu theo mã cổ phiếu đang hỏi
+- [ ] Test: hỏi về công ty A không bị lẫn dữ liệu của công ty B
+
+**Output:** Hệ thống RAG xử lý được nhiều tài liệu/nhiều công ty mà không lẫn dữ liệu.
+
+---
+
+#### Bài 14 — LLM-based Router
+- [ ] Hiểu vấn đề với keyword matching: cứng nhắc, không xử lý được ngôn ngữ tự nhiên, phải maintain thủ công
+- [ ] Thiết kế prompt yêu cầu LLM trả về JSON: `{"agents": ["web_research", "financial_data"]}`
+- [ ] Parse JSON output từ LLM, fallback về all-agents nếu parse lỗi
+- [ ] So sánh: thử câu hỏi khó (câu phức tạp, viết tắt, tiếng Anh lẫn tiếng Việt) với keyword router vs LLM router
+
+**Output:** Router thông minh tự phân loại intent, không cần if/else cứng.
+
+---
+
+#### Bài 15 — Multi-company Comparison
+- [ ] Mở rộng `OrchestratorState`: thêm `symbols: List[str]` (hỗ trợ nhiều mã)
+- [ ] Cập nhật LLM router: extract tất cả symbol từ câu hỏi ("So sánh NVDA và AMD" → `["NVDA", "AMD"]`)
+- [ ] Chạy `financial_data_node` và `rag_node` song song cho từng symbol
+- [ ] Cập nhật `analysis_agent`: prompt so sánh (strengths/weaknesses của từng công ty)
+- [ ] Test: "So sánh NVIDIA và AMD về doanh thu và giá cổ phiếu"
+
+**Output:** Hệ thống xử lý câu hỏi so sánh nhiều công ty, báo cáo có cột so sánh rõ ràng.
+
+---
+
+#### Bài 16 — Streamlit UI + Conversation Memory
+- [ ] Viết `app.py` dùng Streamlit: input câu hỏi, hiển thị `report` cuối cùng
+- [ ] Hiển thị trạng thái đang chạy (agent nào đang xử lý) để người dùng biết hệ thống không bị treo
+- [ ] Thêm conversation memory dùng LangGraph `MemorySaver` + `thread_id`
+- [ ] Cho phép hỏi tiếp ("còn AMD thì sao?") mà hệ thống hiểu ngữ cảnh câu trước
+- [ ] Chạy thử bằng `streamlit run app.py`
+
+**Output:** Chatbot web thực sự — người dùng tương tác nhiều lượt, hệ thống nhớ ngữ cảnh.
+
+---
+
+#### Bài 17 — Docker hóa ứng dụng
 - [ ] Viết `Dockerfile` cho project
 - [ ] Viết `docker-compose.yml` gộp app + ChromaDB
 - [ ] Chạy toàn bộ hệ thống bằng 1 lệnh: `docker-compose up`
@@ -414,7 +461,7 @@ phase3/
 
 ---
 
-#### Bài 14 — Logging & Monitoring
+#### Bài 18 — Logging & Monitoring
 - [ ] Thêm structured logging vào từng agent (dùng `structlog` hoặc `loguru`)
 - [ ] Log: agent nào chạy, input/output, thời gian, token dùng
 - [ ] Tạo dashboard đơn giản bằng file log (không cần Grafana/Prometheus)
@@ -424,7 +471,7 @@ phase3/
 
 ---
 
-#### Bài 15 — System Design & README
+#### Bài 19 — System Design & README
 - [ ] Vẽ kiến trúc hệ thống (dùng draw.io hoặc Mermaid trong Markdown)
 - [ ] Viết `README.md` chuyên nghiệp: problem, architecture, how to run, demo
 - [ ] Chuẩn bị giải thích kiến trúc trong 5 phút (dùng cho phỏng vấn)
@@ -437,21 +484,30 @@ phase3/
 
 ```
 phase4/
-├── Dockerfile
-├── docker-compose.yml
+├── lesson13_multi_doc_rag.ipynb
+├── lesson14_llm_router.ipynb
+├── lesson15_multi_company.ipynb
+├── lesson16_ui_memory.ipynb
+├── lesson17_docker.ipynb
+├── lesson18_logging.ipynb
+├── lesson19_readme.ipynb
+├── app.py                # Streamlit UI (Bài 16)
+├── Dockerfile            # (Bài 17)
+├── docker-compose.yml    # (Bài 17)
 ├── .env.example
 └── docs/
-    └── architecture.md   # Sơ đồ kiến trúc + giải thích
+    └── architecture.md   # Sơ đồ kiến trúc + giải thích (Bài 19)
 ```
 
 ---
 
 ### Câu hỏi kiểm tra cuối Giai đoạn 4
 
-1. Docker image khác Docker container thế nào?
-2. Tại sao không hardcode API key trong code?
-3. Nếu hệ thống trả lời sai, bạn debug bắt đầu từ đâu?
-4. Giải thích kiến trúc project này trong 5 phút cho người không biết AI.
+1. Tại sao LLM router tốt hơn keyword router? Trường hợp nào keyword router vẫn đủ dùng?
+2. Conversation memory ảnh hưởng gì đến chi phí API? Làm sao kiểm soát?
+3. Docker image khác Docker container thế nào?
+4. Nếu hệ thống trả lời sai, bạn debug bắt đầu từ đâu?
+5. Giải thích kiến trúc project này trong 5 phút cho người không biết AI.
 
 ---
 
@@ -483,9 +539,10 @@ Multi-Agent Research Assistant/
 └── final/                ← Version hoàn chỉnh để demo
     ├── agents/
     ├── graph/
-    ├── data/
-    ├── chroma_db/
+    ├── data/             # Nhiều tài liệu/nhiều công ty
+    ├── chroma_db/        # 1 collection, lọc bằng metadata (symbol)
     ├── docs/
+    ├── app.py            # Streamlit UI
     ├── Dockerfile
     ├── docker-compose.yml
     ├── .env.example
@@ -496,11 +553,6 @@ Multi-Agent Research Assistant/
 ---
 
 ## Checklist tiến độ tổng quan
-
-### Giai đoạn 0 — Git & Setup
-- [ ] Bước 1: Setup Git & GitHub, tạo repo, commit đầu tiên
-- [ ] Bước 2: Git workflow thực tế (branch per lesson)
-- [ ] Bước 3: Xử lý tình huống thực tế
 
 ### Giai đoạn 1 — LLM Basics
 - [ ] Bài 1: Hello LLM
@@ -521,10 +573,14 @@ Multi-Agent Research Assistant/
 - [ ] Bài 12: Report Agent & Hoàn thiện
 
 ### Giai đoạn 4 — Engineering & Deploy
-- [ ] Bài 13: Docker hóa ứng dụng
-- [ ] Bài 14: Logging & Monitoring
-- [ ] Bài 15: System Design & README
+- [ ] Bài 13: Multi-document RAG
+- [ ] Bài 14: LLM-based Router
+- [ ] Bài 15: Multi-company Comparison
+- [ ] Bài 16: Streamlit UI + Conversation Memory
+- [ ] Bài 17: Docker hóa ứng dụng
+- [ ] Bài 18: Logging & Monitoring
+- [ ] Bài 19: System Design & README
 
 ---
 
-*Cập nhật lần cuối: 2026-06-12*
+*Cập nhật lần cuối: 2026-07-02*
