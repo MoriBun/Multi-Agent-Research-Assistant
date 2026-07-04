@@ -20,7 +20,7 @@ from sentence_transformers import SentenceTransformer
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
-CHROMA_PATH = r"D:\Code\AI\Multi-Agent Research Assistant project\phase4\chroma_db"
+CHROMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma_db")
 
 
 # ── State ──────────────────────────────────────────────────────────────────────
