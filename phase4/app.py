@@ -2,7 +2,9 @@
 Bài 16: Streamlit Chat App — Stock Research Assistant
 Chạy: streamlit run phase4/app.py
 """
+import logging
 import os
+import time
 import uuid
 from operator import add
 from typing import Annotated, TypedDict
@@ -22,6 +24,36 @@ client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
 
 CHROMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "chroma_db")
 
+# ── Setup logger ──────────────────────────────────────────────────────────────
+def setup_logger(name: str, log_file: str = None) -> logging.Logger:
+    logger = logging.getLogger(name)
+    if logger.handlers:          # tránh add handler trùng khi Streamlit hot-reload
+        return logger
+    logger.setLevel(logging.DEBUG)
+
+    fmt = logging.Formatter(
+        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+        datefmt="%H:%M:%S"
+    )
+
+    sh = logging.StreamHandler()
+    sh.setLevel(logging.DEBUG)
+    sh.setFormatter(fmt)
+    logger.addHandler(sh)
+
+    if log_file:
+        fh = logging.FileHandler(log_file, encoding="utf-8")
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(fmt)
+        logger.addHandler(fh)
+
+    return logger
+
+logger = setup_logger("stock_app", log_file="phase4/app.log")
+
+# tắt warning của Streamlit file watcher và torch (không liên quan đến app)
+logging.getLogger("streamlit.watcher.local_sources_watcher").setLevel(logging.ERROR)
+logging.getLogger("torch").setLevel(logging.ERROR)
 
 # ── State ──────────────────────────────────────────────────────────────────────
 class AppState(TypedDict):
@@ -31,11 +63,10 @@ class AppState(TypedDict):
 
 
 # ── Resources (khởi tạo 1 lần, cache lại) ─────────────────────────────────────
-# FIX 1: tách riêng get_resources() để collect_for_symbol() dùng được
 @st.cache_resource
 def get_resources():
     embed_model = SentenceTransformer("all-MiniLM-L6-v2")
-    chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)  # FIX 2: đúng API
+    chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
     collection = chroma_client.get_collection("multi_company_reports")
     return embed_model, collection
 
@@ -54,9 +85,10 @@ def get_financial_snapshot(symbol: str) -> str:
 
 
 def collect_for_symbol(symbol: str, question: str) -> str:
+    logger.info(f"Bắt đầu xử lý {symbol}")
+    start = time.time()
     financial_snapshot = get_financial_snapshot(symbol)
 
-    # FIX 3: lấy embed_model + collection từ get_resources(), dùng query_embeddings
     embed_model, collection = get_resources()
     query_embedding = embed_model.encode(question).tolist()
     results = collection.query(
@@ -66,7 +98,14 @@ def collect_for_symbol(symbol: str, question: str) -> str:
     )
 
     report_chunks = results["documents"][0] if results["documents"] else []
+    logger.debug(f"[collect] {symbol}: tìm thấy {len(report_chunks)} chunks từ ChromaDB")
+    if not report_chunks:
+        logger.warning(f"[collect] {symbol}: Không tìm thấy báo cáo liên quan trong ChromaDB")
+
     report_text = "\n".join(report_chunks) if report_chunks else "Không có báo cáo liên quan."
+
+    end = time.time()
+    logger.info(f"Kết thúc xử lý {symbol} trong {end - start:.2f} giây")
 
     return (
         f"=== {symbol} ===\n"
@@ -76,6 +115,7 @@ def collect_for_symbol(symbol: str, question: str) -> str:
 
 
 def data_collection_node(state: AppState) -> dict:
+    logger.info(f"[data_collection] Bắt đầu thu thập cho {len(state['symbols'])} symbols: {state['symbols']}")
     question = state["messages"][-1]["content"]
     company_data = {}
     for symbol in state["symbols"]:
@@ -84,6 +124,8 @@ def data_collection_node(state: AppState) -> dict:
 
 
 def analysis_node(state: AppState) -> dict:
+    logger.info(f"[analysis] Bắt đầu phân tích, context dài {sum(len(v) for v in state['company_data'].values())} ký tự")
+    start = time.time()
     context = "\n\n".join(state["company_data"].values())
 
     history = ""
@@ -100,6 +142,7 @@ def analysis_node(state: AppState) -> dict:
         f"Trả lời dựa trên dữ liệu trên, có so sánh nếu được hỏi."
     )
     response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+    logger.info(f"[analysis] Hoàn thành sau {time.time() - start:.2f}s")
     return {"messages": [{"role": "assistant", "content": response.text}]}
 
 
@@ -107,7 +150,6 @@ def analysis_node(state: AppState) -> dict:
 @st.cache_resource
 def get_graph():
     builder = StateGraph(AppState)
-    # FIX 4: add_node(tên, hàm) — tên phải là tham số đầu tiên
     builder.add_node("data_collection", data_collection_node)
     builder.add_node("analysis", analysis_node)
     builder.add_edge(START, "data_collection")
@@ -115,7 +157,6 @@ def get_graph():
     builder.add_edge("analysis", END)
 
     memory = MemorySaver()
-    # FIX 5: compile() trả về compiled graph — phải return cái này
     return builder.compile(checkpointer=memory)
 
 
@@ -162,7 +203,6 @@ if question := st.chat_input("Hỏi về cổ phiếu... (ví dụ: So sánh doa
             "messages": [{"role": "user", "content": question}],
             "company_data": {},
         }
-        # FIX 6: invoke(state, config=...) — không dùng initial_state= làm keyword
         result = graph.invoke(initial_state, config=config)
         answer = result["messages"][-1]["content"]
 
