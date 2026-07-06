@@ -1,4 +1,5 @@
 import streamlit as st
+from services.ingest import ingest_pdf
 from core.state import AppState
 import uuid
 from core.graph import get_graph
@@ -20,6 +21,42 @@ with st.sidebar:
         st.session_state.messages = []
         st.session_state.thread_id = str(uuid.uuid4())
         st.rerun()
+
+    st.markdown("---")
+    st.subheader("📎 Tải lên báo cáo")
+
+    upload_symbol = st.text_input(
+        "Mã công ty cho tài liệu",
+        help="Tài liệu sẽ được gắn nhãn công ty này để hỏi đáp"
+    )
+    uploaded_files = st.file_uploader(
+        "Chọn PDF", type="pdf", accept_multiple_files=True
+    )
+
+    if st.button("➕ Thêm vào hệ thống"):
+        # TODO: kiểm tra điều kiện trước khi ingest:
+        #   - upload_symbol không được rỗng
+        #   - uploaded_files phải có file
+        # Nếu thiếu → st.warning(...) và không làm gì
+        #
+        # Nếu đủ → lặp qua từng file, gọi ingest_pdf(...) với:
+        #   file.getvalue(), upload_symbol.upper().strip(), file.name
+        # Rồi báo st.success(f"Đã thêm {n} chunks từ {file.name}")
+        if not upload_symbol.strip():
+            st.warning("Vui lòng nhập mã công ty trước khi thêm tài liệu.")
+        elif not uploaded_files:
+            st.warning("Vui lòng chọn ít nhất một file PDF để thêm.")
+        else:
+            total_chunks_added = 0
+            for file in uploaded_files:
+                try:
+                    chunks_added = ingest_pdf(file.getvalue(), upload_symbol.upper().strip(), file.name)
+                    total_chunks_added += chunks_added
+                    st.success(f"Đã thêm {chunks_added} chunks từ {file.name}")
+                except Exception as e:
+                    st.error(f"Đã xảy ra lỗi khi thêm {file.name}: {str(e)}")
+            st.success(f"Đã thêm tổng cộng {total_chunks_added} chunks từ các file đã chọn.")
+        pass
 
     st.markdown("---")
     st.caption(f"Session: `{st.session_state.get('thread_id', '')[:8]}...`")

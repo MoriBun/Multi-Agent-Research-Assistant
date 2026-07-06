@@ -14,7 +14,7 @@ def collect_for_symbol(symbol: str, question: str) -> str:
     query_embedding = embed_model.encode(question).tolist()
     results = collection.query(
         query_embeddings=[query_embedding],
-        n_results=3,
+        n_results=8,
         where={"symbol": symbol}
     )
 
