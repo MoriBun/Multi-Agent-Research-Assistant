@@ -15,6 +15,9 @@ env/
 chroma_db/
 *.db
 
+data/
+app.log
+
 # IDE
 .vscode/
 .idea/
