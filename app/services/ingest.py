@@ -16,7 +16,8 @@ def split_into_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> li
 
 
 def ingest_pdf(file_bytes: bytes, symbol: str, source_name: str) -> int:
-    """Đọc PDF từ bytes, chunk, embed, lưu vào ChromaDB.
+    """Đọc PDF từ bytes, chunk, embed, lưu vào ChromaDB (idempotent).
+    Ingest lại cùng 1 file = thay thế bản cũ, KHÔNG tạo trùng.
     Trả về số chunks đã thêm."""
     logger.info(f"[ingest] Bắt đầu ingest '{source_name}' cho symbol {symbol}")
 
@@ -29,23 +30,23 @@ def ingest_pdf(file_bytes: bytes, symbol: str, source_name: str) -> int:
 
     # 2. Chunk
     chunks = split_into_chunks(full_text)
+    if not chunks:
+        logger.warning(f"[ingest] '{source_name}' không có text để ingest — bỏ qua")
+        return 0
 
     # 3. Lấy embed_model + collection dùng chung (KHÔNG tạo mới)
     embed_model, collection = get_resources()
 
-    # 4. TODO: embed chunks → list
+    # 4. Idempotent: xoá sạch bản cũ của ĐÚNG file này (khớp cả symbol lẫn source)
+    #    trước khi thêm → upload lại nhiều lần vẫn chỉ có 1 bản duy nhất
+    collection.delete(where={"$and": [{"symbol": symbol}, {"source": source_name}]})
+
+    # 5. Embed + metadata + id xác định
     embeddings = embed_model.encode(chunks).tolist()
-
-    # 5. TODO: tạo metadatas — mỗi chunk 1 dict, gồm CẢ symbol VÀ source
     metadatas = [{"symbol": symbol, "source": source_name} for _ in chunks]
+    ids = [f"{symbol}::{source_name}::{i}" for i in range(len(chunks))]
 
-    # 6. TODO: tạo ids unique — format gợi ý: f"{symbol}-{source_name}_chunk_{i}"
-    #    (giống bài 13, dùng source_name để không trùng giữa các file)
-    ids = [f"{symbol}-{source_name}_chunk_{i}" for i in range(len(chunks))]
-
-    # 7. TODO: upsert vào collection (dùng upsert, KHÔNG add — để upload
-    #    lại cùng file không bị lỗi 'ID already exists')
-    collection.upsert(documents=chunks, embeddings=embeddings, metadatas=metadatas, ids=ids)
+    collection.add(documents=chunks, embeddings=embeddings, metadatas=metadatas, ids=ids)
 
     logger.info(f"[ingest] Đã thêm {len(chunks)} chunks từ '{source_name}'")
     return len(chunks)

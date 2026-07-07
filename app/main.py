@@ -1,5 +1,6 @@
 import streamlit as st
 from services.ingest import ingest_pdf
+from services.rag import get_kb_status
 from core.state import AppState
 import uuid
 from core.graph import get_graph
@@ -10,12 +11,6 @@ st.title("📊 Stock Research Assistant")
 
 with st.sidebar:
     st.header("Cài đặt")
-    symbols_input = st.text_input(
-        "Mã cổ phiếu (phân cách bằng dấu phẩy)",
-        value="NVDA,AMD",
-        help="Ví dụ: NVDA,AMD hoặc AAPL,MSFT,GOOGL"
-    )
-    symbols = [s.strip().upper() for s in symbols_input.split(",") if s.strip()]
 
     if st.button("🗑️ Xoá lịch sử"):
         st.session_state.messages = []
@@ -56,7 +51,17 @@ with st.sidebar:
                 except Exception as e:
                     st.error(f"Đã xảy ra lỗi khi thêm {file.name}: {str(e)}")
             st.success(f"Đã thêm tổng cộng {total_chunks_added} chunks từ các file đã chọn.")
-        pass
+
+    st.markdown("---")
+    st.subheader("📚 Kho tài liệu")
+    kb = get_kb_status()
+    if not kb:
+        st.caption("Kho đang trống. Hãy tải lên báo cáo để hỏi đáp dựa trên tài liệu.")
+    else:
+        for sym, files in kb.items():
+            st.markdown(f"**{sym}** — {len(files)} tài liệu")
+            for f in files:
+                st.caption(f"• {f}")
 
     st.markdown("---")
     st.caption(f"Session: `{st.session_state.get('thread_id', '')[:8]}...`")
@@ -69,6 +74,11 @@ if "thread_id" not in st.session_state:
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"].replace("$", r"\$"))
+        if msg.get("sources"):                                          # ← chỉ khi có nguồn
+            with st.expander(f"📎 Nguồn tham khảo ({len(msg['sources'])} đoạn)"):
+                for s in msg["sources"]:
+                    st.markdown(f"**[{s['symbol']}]** `{s['source']}`")
+                    st.caption(s["snippet"].replace("$", r"\$") + "...")
 
 if question := st.chat_input("Hỏi về cổ phiếu... (ví dụ: So sánh doanh thu NVDA và AMD)"):
     st.session_state.messages.append({"role": "user", "content": question})
@@ -79,13 +89,19 @@ if question := st.chat_input("Hỏi về cổ phiếu... (ví dụ: So sánh doa
     config = {"configurable": {"thread_id": st.session_state.thread_id}}
     with st.spinner("Đang phân tích..."):
         initial_state: AppState = {
-            "symbols": symbols,
+            "symbols": [],  # ← khởi tạo danh sách symbols rỗng
             "messages": [{"role": "user", "content": question}],
             "company_data": {},
+            "sources": [],  # ← khởi tạo danh sách sources rỗng
         }
         result = graph.invoke(initial_state, config=config)
         answer = result["messages"][-1]["content"]
 
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+
+    st.session_state.messages.append({
+            "role": "assistant",
+            "content": answer,
+            "sources": result.get("sources", []),     # ← đính kèm
+        })
     with st.chat_message("assistant"):
         st.markdown(answer.replace("$", r"\$"))

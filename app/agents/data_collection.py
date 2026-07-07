@@ -19,6 +19,16 @@ def collect_for_symbol(symbol: str, question: str) -> str:
     )
 
     report_chunks = results["documents"][0] if results["documents"] else []
+    metadatas     = results["metadatas"][0] if results["metadatas"] else []
+
+    sources = []
+    for chunk, meta in zip(report_chunks, metadatas):
+        sources.append({
+            "symbol": symbol,
+            "source": meta.get("source", "báo cáo có sẵn"),
+            "snippet": chunk[:200],
+        })
+
     logger.debug(f"[collect] {symbol}: tìm thấy {len(report_chunks)} chunks từ ChromaDB")
     if not report_chunks:
         logger.warning(f"[collect] {symbol}: Không tìm thấy báo cáo liên quan trong ChromaDB")
@@ -32,13 +42,16 @@ def collect_for_symbol(symbol: str, question: str) -> str:
         f"=== {symbol} ===\n"
         f"[Tài chính]\n{financial_snapshot}\n"
         f"[Báo cáo]\n{report_text}"
-    )
+    ), sources
 
 
 def data_collection_node(state: AppState) -> dict:
     logger.info(f"[data_collection] Bắt đầu thu thập cho {len(state['symbols'])} symbols: {state['symbols']}")
     question = state["messages"][-1]["content"]
     company_data = {}
+    all_sources = []
     for symbol in state["symbols"]:
-        company_data[symbol] = collect_for_symbol(symbol, question)
-    return {"company_data": company_data}
+        text, sources = collect_for_symbol(symbol, question)
+        company_data[symbol] = text
+        all_sources.extend(sources)      # gộp nguồn của mọi công ty
+    return {"company_data": company_data, "sources": all_sources}

@@ -6,3 +6,4 @@ class AppState(TypedDict):
     messages: Annotated[list[dict], add]   # lịch sử hội thoại, cộng dồn qua turns
     symbols: list[str]                     # ["NVDA", "AMD"]
     company_data: dict                     # {"NVDA": "...", "AMD": "..."}
+    sources: list[dict]        #  [{"symbol":..., "source":..., "snippet":...}, ...]
