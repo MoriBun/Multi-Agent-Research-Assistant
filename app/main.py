@@ -4,6 +4,7 @@ from services.rag import get_kb_status
 from core.state import AppState
 import uuid
 from core.graph import get_graph
+from services.rag import get_kb_status, delete_document
 
 # ── Streamlit UI ───────────────────────────────────────────────────────────────
 st.set_page_config(page_title="Stock Research Assistant", page_icon="📊")
@@ -65,7 +66,12 @@ with st.sidebar:
         for sym, files in kb.items():
             st.markdown(f"**{sym}** — {len(files)} tài liệu")
             for f in files:
-                st.caption(f"• {f}")
+                col1, col2 = st.columns([5, 1])
+                col1.caption(f"• {f}")
+                if col2.button("🗑️", key=f"del::{sym}::{f}"):
+                    delete_document(sym, f)
+                    st.success(f"Đã xóa tài liệu `{f}` của {sym}.")
+                    st.rerun()
 
     st.markdown("---")
     st.caption(f"Session: `{st.session_state.get('thread_id', '')[:8]}...`")

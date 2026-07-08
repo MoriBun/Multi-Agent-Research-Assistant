@@ -2,6 +2,8 @@ import chromadb
 import streamlit as st
 from sentence_transformers import SentenceTransformer
 from config import CHROMA_PATH, COLLECTION_NAME
+from logging_setup import logger
+
 
 # ── Resources (khởi tạo 1 lần, cache lại) ─────────────────────────────────────
 @st.cache_resource
@@ -23,3 +25,9 @@ def get_kb_status() -> dict[str, list[str]]:
         source = meta.get("source", "?")
         status.setdefault(symbol, set()).add(source)
     return {sym: sorted(files) for sym, files in status.items()}
+
+def delete_document(symbol: str, source: str) -> None:
+    """Xóa toàn bộ chunk của một tài liệu (theo symbol + source) khỏi kho."""
+    _, collection = get_resources()
+    collection.delete(where={"$and": [{"symbol": symbol}, {"source": source}]})
+    logger.info(f"[delete] Đã xóa tài liệu `{source}` của {symbol}")
