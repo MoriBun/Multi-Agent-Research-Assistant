@@ -1,6 +1,7 @@
 import fitz
 from logging_setup import logger
 from services.rag import get_resources
+from config import client, MODEL_NAME
 
 
 def split_into_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
@@ -50,3 +51,35 @@ def ingest_pdf(file_bytes: bytes, symbol: str, source_name: str) -> int:
 
     logger.info(f"[ingest] Đã thêm {len(chunks)} chunks từ '{source_name}'")
     return len(chunks)
+
+DETECT_PROMPT = """Đây là trang đầu của một báo cáo tài chính.
+Xác định MÃ TICKER cổ phiếu (sàn Mỹ) của công ty phát hành báo cáo.
+- Trả về DUY NHẤT mã ticker in hoa, ví dụ: NVDA
+- Không xác định được → trả về: UNKNOWN
+
+Nội dung trang đầu:
+{page_text}
+"""
+
+def detect_symbol_from_pdf(file_bytes: bytes) -> str:
+    """Đọc trang đầu PDF, dùng LLM đoán mã ticker. Trả 'UNKNOWN' nếu không chắc."""
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
+    first_page = doc[0].get_text()[:3000] if doc.page_count else ""
+    doc.close()
+
+    if not first_page.strip():
+        return "UNKNOWN"
+
+    try:
+        prompt = DETECT_PROMPT.format(page_text=first_page)
+        response = client.models.generate_content(model=MODEL_NAME, contents=prompt)
+        symbol = response.text.strip().upper()
+        # TODO: sanity check — ticker hợp lệ thường ngắn & chỉ chữ/số.
+        #   Nếu symbol rỗng, hoặc dài hơn 6 ký tự, hoặc không phải chữ-số
+        #   → coi như không chắc, return "UNKNOWN"
+        if not symbol or len(symbol) > 6 or not symbol.isalnum():
+            return "UNKNOWN"
+        return symbol
+    except Exception as e:
+        logger.error(f"[detect] lỗi: {e}")
+        return "UNKNOWN"

@@ -1,5 +1,5 @@
 import streamlit as st
-from services.ingest import ingest_pdf
+from services.ingest import detect_symbol_from_pdf, ingest_pdf
 from services.rag import get_kb_status
 from core.state import AppState
 import uuid
@@ -20,37 +20,41 @@ with st.sidebar:
     st.markdown("---")
     st.subheader("📎 Tải lên báo cáo")
 
-    upload_symbol = st.text_input(
-        "Mã công ty cho tài liệu",
-        help="Tài liệu sẽ được gắn nhãn công ty này để hỏi đáp"
-    )
     uploaded_files = st.file_uploader(
         "Chọn PDF", type="pdf", accept_multiple_files=True
     )
 
+    confirmed = {}   # {tên_file: mã user xác nhận}
+    if uploaded_files:
+        st.caption("Mã nhận diện tự động — sửa nếu sai:")
+        for file in uploaded_files:
+            # TODO: đoán 1 lần cho mỗi file, lưu vào session_state
+            key = f"detected::{file.name}"
+            if key not in st.session_state:
+                with st.spinner(f"Đang nhận diện {file.name}..."):
+                    st.session_state[key] = detect_symbol_from_pdf(file.getvalue())
+
+            # TODO: ô nhập mã cho file này, value = mã đã đoán, key riêng theo tên file
+            confirmed[file.name] = st.text_input(
+                f"Mã cho `{file.name}`",
+                value=st.session_state[key],
+                key=f"confirm::{file.name}",
+            )
+
     if st.button("➕ Thêm vào hệ thống"):
-        # TODO: kiểm tra điều kiện trước khi ingest:
-        #   - upload_symbol không được rỗng
-        #   - uploaded_files phải có file
-        # Nếu thiếu → st.warning(...) và không làm gì
-        #
-        # Nếu đủ → lặp qua từng file, gọi ingest_pdf(...) với:
-        #   file.getvalue(), upload_symbol.upper().strip(), file.name
-        # Rồi báo st.success(f"Đã thêm {n} chunks từ {file.name}")
-        if not upload_symbol.strip():
-            st.warning("Vui lòng nhập mã công ty trước khi thêm tài liệu.")
-        elif not uploaded_files:
-            st.warning("Vui lòng chọn ít nhất một file PDF để thêm.")
+        if not uploaded_files:
+            st.warning("Vui lòng chọn ít nhất một file PDF.")
         else:
-            total_chunks_added = 0
             for file in uploaded_files:
-                try:
-                    chunks_added = ingest_pdf(file.getvalue(), upload_symbol.upper().strip(), file.name)
-                    total_chunks_added += chunks_added
-                    st.success(f"Đã thêm {chunks_added} chunks từ {file.name}")
-                except Exception as e:
-                    st.error(f"Đã xảy ra lỗi khi thêm {file.name}: {str(e)}")
-            st.success(f"Đã thêm tổng cộng {total_chunks_added} chunks từ các file đã chọn.")
+                symbol = confirmed[file.name].upper().strip()
+                # TODO: nếu symbol rỗng hoặc == "UNKNOWN" → st.warning + bỏ qua (continue)
+                # Nếu hợp lệ → ingest_pdf(file.getvalue(), symbol, file.name)
+                #   rồi st.success(f"Đã thêm {n} chunks từ {file.name} ({symbol})")
+                if not symbol or symbol == "UNKNOWN":
+                    st.warning(f"File `{file.name}` bị bỏ qua vì mã ticker không hợp lệ.")
+                    continue
+                n = ingest_pdf(file.getvalue(), symbol, file.name)
+                st.success(f"Đã thêm {n} chunks từ `{file.name}` ({symbol})")
 
     st.markdown("---")
     st.subheader("📚 Kho tài liệu")
@@ -103,5 +107,4 @@ if question := st.chat_input("Hỏi về cổ phiếu... (ví dụ: So sánh doa
             "content": answer,
             "sources": result.get("sources", []),     # ← đính kèm
         })
-    with st.chat_message("assistant"):
-        st.markdown(answer.replace("$", r"\$"))
+    st.rerun() # ← chạy lại để vòng lặp lịch sử render câu trả lời kèm citations
