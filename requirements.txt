@@ -15,3 +15,6 @@ ddgs==9.14.4
 
 # Phase 4 - Streamlit UI
 streamlit==1.45.1
+
+# Phase 5 - Deployment
+beautifulsoup4==4.15.0

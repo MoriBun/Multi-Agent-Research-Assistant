@@ -1,6 +1,6 @@
 import streamlit as st
-from services.ingest import detect_symbol_from_pdf, ingest_pdf
-from services.rag import get_kb_status
+from services.edgar import fetch_latest_10q
+from services.ingest import detect_symbol_from_pdf, ingest_pdf, ingest_text
 from core.state import AppState
 import uuid
 from core.graph import get_graph
@@ -56,6 +56,25 @@ with st.sidebar:
                     continue
                 n = ingest_pdf(file.getvalue(), symbol, file.name)
                 st.success(f"Đã thêm {n} chunks từ `{file.name}` ({symbol})")
+
+    
+    st.markdown("---")
+    st.subheader("🏛️ Kéo báo cáo từ SEC")
+    edgar_ticker = st.text_input("Mã cổ phiếu (Mỹ)", key="edgar_ticker", placeholder="VD: TSLA")
+    if st.button("⬇️ Kéo 10-Q mới nhất"):
+        ticker = edgar_ticker.upper().strip()
+        if not ticker:
+            st.warning("Nhập mã cổ phiếu trước.")
+        else:
+            with st.spinner(f"Đang lấy 10-Q của {ticker} từ SEC..."):
+                result = fetch_latest_10q(ticker)
+            if result is None:
+                st.error("Không tìm thấy 10-Q")
+            else:
+                text, source = result
+                n = ingest_text(text, ticker, source)
+                st.success(f"Đã thêm {n} chunks từ {source}")
+                st.rerun()   # cập nhật mục Kho tài liệu
 
     st.markdown("---")
     st.subheader("📚 Kho tài liệu")
