@@ -18,3 +18,6 @@ streamlit==1.45.1
 
 # Phase 5 - Deployment
 beautifulsoup4==4.15.0
+
+requests==2.34.2
+

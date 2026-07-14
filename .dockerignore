@@ -7,9 +7,8 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Data files (mount as volume khi run)
-phase4/chroma_db/
-phase4/data/
+# Data runtime (mount volume khi run)
+data/
 
 # Notebooks và phase cũ (không cần trong container)
 phase1/
