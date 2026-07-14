@@ -1,5 +1,5 @@
 import json
-from config import client, MODEL_NAME
+from config import get_client, MODEL_NAME
 from logging_setup import logger
 from core.state import AppState
 
@@ -28,7 +28,7 @@ def symbol_extraction_node(state: AppState) -> dict:
     prompt = EXTRACT_PROMPT.format(history=history, question=question)
 
     try:
-        response = client.models.generate_content(model=MODEL_NAME, contents=prompt)
+        response = get_client().models.generate_content(model=MODEL_NAME, contents=prompt)
         text = response.text.strip()
         if text.startswith("```"):
             text = "\n".join(text.split("\n")[1:-1])

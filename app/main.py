@@ -13,6 +13,14 @@ st.title("📊 Stock Research Assistant")
 with st.sidebar:
     st.header("Cài đặt")
 
+    with st.expander("🔑 Dùng API key riêng (tùy chọn)"):
+        st.text_input(
+            "Gemini API key của bạn",
+            type="password",
+            key="user_api_key",
+            help="Để trống = dùng key mặc định của app"
+        )
+
     if st.button("🗑️ Xoá lịch sử"):
         st.session_state.messages = []
         st.session_state.thread_id = str(uuid.uuid4())

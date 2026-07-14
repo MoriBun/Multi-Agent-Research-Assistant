@@ -1,6 +1,6 @@
 import time
 from logging_setup import logger
-from config import client, MODEL_NAME
+from config import get_client, MODEL_NAME
 from core.state import AppState
 
 def analysis_node(state: AppState) -> dict:
@@ -21,6 +21,6 @@ def analysis_node(state: AppState) -> dict:
         f"Câu hỏi hiện tại: {question}\n"
         f"Trả lời dựa trên dữ liệu trên, có so sánh nếu được hỏi."
     )
-    response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt)
+    response = get_client().models.generate_content(model=MODEL_NAME, contents=prompt)
     logger.info(f"[analysis] Hoàn thành sau {time.time() - start:.2f}s")
     return {"messages": [{"role": "assistant", "content": response.text}]}

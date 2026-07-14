@@ -1,7 +1,7 @@
 import fitz
 from logging_setup import logger
 from services.rag import get_resources
-from config import client, MODEL_NAME
+from config import get_client, MODEL_NAME
 
 
 def split_into_chunks(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]:
@@ -64,7 +64,7 @@ def detect_symbol_from_pdf(file_bytes: bytes) -> str:
 
     try:
         prompt = DETECT_PROMPT.format(page_text=first_page)
-        response = client.models.generate_content(model=MODEL_NAME, contents=prompt)
+        response = get_client().models.generate_content(model=MODEL_NAME, contents=prompt)
         symbol = response.text.strip().upper()
         # TODO: sanity check — ticker hợp lệ thường ngắn & chỉ chữ/số.
         #   Nếu symbol rỗng, hoặc dài hơn 6 ký tự, hoặc không phải chữ-số
