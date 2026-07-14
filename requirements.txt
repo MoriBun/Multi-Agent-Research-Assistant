@@ -1,23 +1,25 @@
-# Phase 1 - LLM Basics
+# Cài torch bản CPU (nhẹ RAM, không kéo mớ nvidia-cuda-* nặng) cho Streamlit Cloud
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# LLM & data
 google-genai==2.8.0
 yfinance==1.4.1
 python-dotenv==1.2.2
-
-# Phase 2 - RAG & Vector Database
-pymupdf==1.27.2.3
-sentence-transformers==5.5.1
-chromadb==1.5.9
-
-# Phase 3 - Multi-Agent with LangGraph
-langgraph==1.2.5
-ipykernel==7.3.0
-ddgs==9.14.4
-
-# Phase 4 - Streamlit UI
-streamlit==1.45.1
-
-# Phase 5 - Deployment
-beautifulsoup4==4.15.0
-
 requests==2.34.2
 
+# RAG & Vector Database
+pymupdf==1.27.2.3
+chromadb==1.5.9
+
+# Embeddings (torch CPU-only)
+torch==2.13.0+cpu
+sentence-transformers==5.5.1
+
+# Multi-Agent
+langgraph==1.2.5
+
+# UI
+streamlit==1.45.1
+
+# SEC EDGAR
+beautifulsoup4==4.15.0
